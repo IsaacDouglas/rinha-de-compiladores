@@ -1,5 +1,5 @@
-const fs = require('node:fs')
-const { evaluate } = require("./src/interpretador.js")
+import fs from "node:fs"
+import { evaluate } from "./src/interpretador.mjs"
 const source = process.argv[2] || "/var/rinha/source.rinha.json"
 
 async function main() {

@@ -21,7 +21,7 @@ const op = {
     'Or': (lhs, rhs) => lhs || rhs
 }
 
-function evaluate(exp, { call_kind, environment } = { environment: {} }) {
+export function evaluate(exp, { call_kind, environment } = { environment: {} }) {
     if (exp === null || exp === undefined) return
 
     switch (exp.kind) {
@@ -55,9 +55,18 @@ function evaluate(exp, { call_kind, environment } = { environment: {} }) {
             break;
         case 'Var':
             const call_kind_var = (call_kind === "Print") ? call_kind : exp.kind
-            return evaluate(environment[exp.text], { call_kind: call_kind_var, environment: { ...environment } })
+            const var_result = evaluate(environment[exp.text], { call_kind: call_kind_var, environment: { ...environment } })
+            return var_result
         case 'Call':
-            return environment[exp.callee.text](exp.arguments, environment)
+            const call_function = environment[exp.callee.text]
+
+            if (call_function) {
+                const call_result = call_function(exp.arguments, environment)
+                return call_result
+            } else {
+                exp.arguments.map(item => evaluate(item, environment))
+            }
+            break
         case 'Function':
             const parameters_func = exp.parameters.map(item => item.text)
             return (call_arguments, environment) => {
@@ -85,10 +94,15 @@ function evaluate(exp, { call_kind, environment } = { environment: {} }) {
             const lhs = evaluate(exp.lhs, { call_kind: exp.kind, environment: { ...environment } })
             const rhs = evaluate(exp.rhs, { call_kind: exp.kind, environment: { ...environment } })
 
+            if (lhs === undefined && rhs === undefined) {
+                throw new Error(`Binary lhs ou rhs invalidos!`)
+            }
+
             const op_func = op[exp.op]
 
             if (op_func !== undefined && op_func !== null) {
-                return op_func(lhs, rhs)
+                const result = op_func(lhs, rhs)
+                return result
             }
 
             throw new Error(`Operação binaria "${exp.op}" invalida!`)
@@ -97,15 +111,21 @@ function evaluate(exp, { call_kind, environment } = { environment: {} }) {
             const if_result = condition
                 ? evaluate(exp.then, { call_kind: exp.kind, environment: { ...environment } })
                 : evaluate(exp.otherwise, { call_kind: exp.kind, environment: { ...environment } })
-
             return if_result
         default:
+            // const error = JSON.stringify({
+            //     message: `kind "${exp.kind}" não existe`,
+            //     kind: exp.kind,
+            //     location: exp.location
+            // }, null, 2)
+            // throw new Error(error)
+            // console.error(error)
             return exp
     }
 
     evaluate(exp.next, { call_kind: exp.kind, environment })
 }
 
-module.exports = {
+export default {
     evaluate
 }
