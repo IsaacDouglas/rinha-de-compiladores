@@ -1,10 +1,3 @@
-const LOGS = process.env.LOGS
-
-function log(exp, environment) {
-    if (LOGS !== "ON") return
-    console.log({ kind: exp.kind, environment })
-}
-
 const op = {
     'Add': (lhs, rhs) => lhs + rhs,
     'Sub': (lhs, rhs) => lhs - rhs,
@@ -22,15 +15,13 @@ const op = {
 }
 
 export function evaluate(exp, { call_kind, environment } = { environment: {} }) {
-    if (exp === null || exp === undefined) return
-
     switch (exp.kind) {
         case 'Closure':
             if (call_kind === "Print") return "<#closure>"
             break;
         case 'Tuple':
-            const first = evaluate(exp.first, { call_kind: exp.kind, environment: { ...environment } })
-            const second = evaluate(exp.second, { call_kind: exp.kind, environment: { ...environment } })
+            const first = evaluate(exp.first, { environment })
+            const second = evaluate(exp.second, { environment })
             if (call_kind === "Print") return `(${first}, ${second})`
             return { ...exp, first, second }
         case 'First':
@@ -46,17 +37,21 @@ export function evaluate(exp, { call_kind, environment } = { environment: {} }) 
         case 'Bool':
             return exp.value
         case 'Print':
-            const print_result = evaluate(exp.value, { call_kind: exp.kind, environment: { ...environment } })
+            const print_result = evaluate(exp.value, { call_kind: exp.kind, environment })
             console.log(print_result)
             return print_result
         case 'Let':
-            const let_result = evaluate(exp.value, { call_kind: exp.kind, environment: { ...environment } })
-            environment[exp.name.text] = let_result
+            environment[exp.name.text] = evaluate(exp.value, { environment })
             break;
         case 'Var':
             const call_kind_var = (call_kind === "Print") ? call_kind : exp.kind
-            const var_result = evaluate(environment[exp.text], { call_kind: call_kind_var, environment: { ...environment } })
-            return var_result
+            const keys = Object.keys(environment)
+            for (const key of keys) {
+                if (key === exp.text) {
+                    return evaluate(environment[exp.text], { call_kind: call_kind_var, environment })
+                }
+            }
+            throw new Error(`Variável não declarada ${exp.text}`)
         case 'Call':
             const call_function = environment[exp.callee.text]
 
@@ -76,27 +71,14 @@ export function evaluate(exp, { call_kind, environment } = { environment: {} }) 
 
                 const environment_func = { ...environment }
                 parameters_func.forEach((item, index) => {
-                    environment_func[item] = evaluate(call_arguments[index], { call_kind: exp.kind, environment: { ...environment } })
+                    environment_func[item] = evaluate(call_arguments[index], { environment })
                 })
 
-                const retorno = evaluate(exp.value, {
-                    call_kind: exp.kind,
-                    environment: {
-                        ...environment_func
-                    }
-                })
-
-                if (retorno !== undefined && retorno !== null) {
-                    return retorno
-                }
+                return evaluate(exp.value, { environment: environment_func })
             }
         case 'Binary':
-            const lhs = evaluate(exp.lhs, { call_kind: exp.kind, environment: { ...environment } })
-            const rhs = evaluate(exp.rhs, { call_kind: exp.kind, environment: { ...environment } })
-
-            if (lhs === undefined && rhs === undefined) {
-                throw new Error(`Binary lhs ou rhs invalidos!`)
-            }
+            const lhs = evaluate(exp.lhs, { environment })
+            const rhs = evaluate(exp.rhs, { environment })
 
             const op_func = op[exp.op]
 
@@ -107,11 +89,12 @@ export function evaluate(exp, { call_kind, environment } = { environment: {} }) 
 
             throw new Error(`Operação binaria "${exp.op}" invalida!`)
         case 'If':
-            const condition = evaluate(exp.condition, { call_kind: exp.kind, environment: { ...environment } })
-            const if_result = condition
-                ? evaluate(exp.then, { call_kind: exp.kind, environment: { ...environment } })
-                : evaluate(exp.otherwise, { call_kind: exp.kind, environment: { ...environment } })
-            return if_result
+            const condition = evaluate(exp.condition, { environment })
+            if (condition) {
+                return evaluate(exp.then, { environment })
+            } else {
+                return evaluate(exp.otherwise, { environment })
+            }
         default:
             // const error = JSON.stringify({
             //     message: `kind "${exp.kind}" não existe`,
@@ -123,7 +106,9 @@ export function evaluate(exp, { call_kind, environment } = { environment: {} }) 
             return exp
     }
 
-    evaluate(exp.next, { call_kind: exp.kind, environment })
+    if (exp.next) {
+        return evaluate(exp.next, { call_kind: exp.kind, environment })
+    }
 }
 
 export default {
