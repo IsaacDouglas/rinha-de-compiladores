@@ -14,7 +14,7 @@ const op = {
     'Or': (lhs, rhs) => lhs || rhs
 }
 
-export function evaluate(exp, { call_kind, environment } = { environment: {} }) {
+export function evaluate(exp, { call_kind, environment }) {
     switch (exp.kind) {
         case 'Closure':
             if (call_kind === "Print") return "<#closure>"
@@ -80,11 +80,11 @@ export function evaluate(exp, { call_kind, environment } = { environment: {} }) 
             const lhs = evaluate(exp.lhs, { environment })
             const rhs = evaluate(exp.rhs, { environment })
 
-            const op_func = op[exp.op]
-
-            if (op_func !== undefined && op_func !== null) {
-                const result = op_func(lhs, rhs)
-                return result
+            const op_keys = Object.keys(op)
+            for (const key of op_keys) {
+                if (key === exp.op) {
+                    return op[exp.op](lhs, rhs)
+                }
             }
 
             throw new Error(`Operação binaria "${exp.op}" invalida!`)
@@ -96,18 +96,20 @@ export function evaluate(exp, { call_kind, environment } = { environment: {} }) 
                 return evaluate(exp.otherwise, { environment })
             }
         default:
-            // const error = JSON.stringify({
-            //     message: `kind "${exp.kind}" não existe`,
-            //     kind: exp.kind,
-            //     location: exp.location
-            // }, null, 2)
-            // throw new Error(error)
-            // console.error(error)
-            return exp
+            switch (typeof exp) {
+                case 'number':
+                    return exp
+                case 'string':
+                    return exp
+                case 'boolean':
+                    return exp
+            }
+
+            throw new Error(`kind "${exp.kind}" não existe`)
     }
 
     if (exp.next) {
-        return evaluate(exp.next, { call_kind: exp.kind, environment })
+        return evaluate(exp.next, { environment })
     }
 }
 
