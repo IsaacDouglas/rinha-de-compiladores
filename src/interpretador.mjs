@@ -2,7 +2,10 @@ const op = {
     'Add': (lhs, rhs) => lhs + rhs,
     'Sub': (lhs, rhs) => lhs - rhs,
     'Mul': (lhs, rhs) => lhs * rhs,
-    'Div': (lhs, rhs) => lhs / rhs,
+    'Div': (lhs, rhs) => {
+        if (rhs === 0) throw new Error(`Divisão por zero: ${lhs}/${rhs}`)
+        return lhs / rhs
+    },
     'Rem': (lhs, rhs) => lhs % rhs,
     'Eq': (lhs, rhs) => lhs === rhs,
     'Neq': (lhs, rhs) => lhs !== rhs,
@@ -25,10 +28,12 @@ export function evaluate(exp, { call_kind, environment }) {
             if (call_kind === "Print") return `(${first}, ${second})`
             return { ...exp, first, second }
         case 'First':
-            if (exp.value.kind === "Tuple") return exp.value.first
+            const first_tuple = evaluate(exp.value, { environment })
+            if (first_tuple.kind === "Tuple") return first_tuple.first
             throw new Error(`${exp.kind} não é compativel com ${exp.value.kind}`)
         case 'Second':
-            if (exp.value.kind === "Tuple") return exp.value.second
+            const second_tuple = evaluate(exp.value, { environment })
+            if (second_tuple.kind === "Tuple") return second_tuple.second
             throw new Error(`${exp.kind} não é compativel com ${exp.value.kind}`)
         case 'Int':
             return exp.value
