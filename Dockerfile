@@ -1,8 +1,8 @@
 FROM node:20
 WORKDIR /app
 
-COPY index.js .
+COPY index.mjs .
 COPY src src
-COPY files/source.rinha.json /var/rinha/source.rinha.json
+COPY var/rinha/source.rinha.json /var/rinha/source.rinha.json
 
-CMD node index.js
+CMD node index.mjs

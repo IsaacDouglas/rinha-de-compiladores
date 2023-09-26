@@ -1,14 +1,14 @@
 all: compile start
 
 compile:
-	rinha files/source.rinha > files/source.rinha.json
+	rinha var/rinha/source.rinha > var/rinha/source.rinha.json
 
-start: files/source.rinha.json
-	node index.mjs files/source.rinha.json
+start: compile var/rinha/source.rinha.json
+	node index.mjs var/rinha/source.rinha.json
 
-dev: compile files/source.rinha.json
-	LOGS="ON" node --watch index.mjs files/source.rinha.json
+dev: compile var/rinha/source.rinha.json
+	node --watch index.mjs var/rinha/source.rinha.json
 
-docker:
+docker: compile var/rinha/source.rinha.json
 	docker build -t rinha .
 	docker run rinha
