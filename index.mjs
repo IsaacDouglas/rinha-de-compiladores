@@ -9,7 +9,7 @@ async function main() {
         const environment = {}
         evaluate(parse.expression, { environment })
     } catch (error) {
-        console.log(error)
+        console.log(error.message)
     }
 }
 
