@@ -64,7 +64,7 @@ export function evaluate(exp, { call_kind, environment }) {
                 if (call_function) {
                     return call_function(exp.arguments, environment)
                 } else {
-                    exp.arguments.map(item => evaluate(item, environment))
+                    exp.arguments.map(item => evaluate(item, { environment }))
                 }
                 break
             case 'Function':
